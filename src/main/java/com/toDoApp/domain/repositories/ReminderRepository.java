@@ -10,4 +10,5 @@ import java.util.List;
 public interface ReminderRepository extends MongoRepository<Reminder,String> {
     List<Reminder> findByTaskId(String taskId);
     List<Reminder> findBySent(boolean sent);
+    List<Reminder> findByUserId(String userId);
 }
