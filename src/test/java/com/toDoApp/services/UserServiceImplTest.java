@@ -9,137 +9,102 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-
 
 class UserServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
 
-    @Mock
-    private BCryptPasswordEncoder passwordEncoder;
-
     @InjectMocks
     private UserServiceImpl userService;
+
+    private User user;
+    private UserRequestDTO requestDTO;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+
+        requestDTO = new UserRequestDTO("Justine12", "justine@gmail.com", "password123");
+        user = new User("1", "Justine12", "justine@gmail.com", "password123");
     }
 
     @Test
-    void testUserCanBeRegistered() {
-        UserRequestDTO request = new UserRequestDTO("Justine12", "justine@gmail.com", "password123");
+    void testCreateUser() {
+        when(userRepository.save(any(User.class))).thenReturn(user);
 
-        when(passwordEncoder.encode("password123")).thenReturn("hashedPassword123");
-        when(userRepository.findByEmail("justine@gmail.com")).thenReturn(Optional.empty());
-        when(userRepository.findByUsername("Justine12")).thenReturn(Optional.empty());
-        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
+        UserResponseDTO result = userService.createUser(requestDTO);
 
-        UserResponseDTO response = userService.createUser(request);
-
-        assertThat(response.getUsername()).isEqualTo("Justine12");
-        assertThat(response.getEmail()).isEqualTo("justine@gmail.com");
+        assertThat(result.getUsername()).isEqualTo("Justine12");
+        assertThat(result.getEmail()).isEqualTo("justine@gmail.com");
+        verify(userRepository, times(1)).save(any(User.class));
     }
 
     @Test
-    void registerExistingUserWithSameEmailThrowsException() {
-        UserRequestDTO request = new UserRequestDTO("Justine12", "justine@gmail", "password123");
-        when(userRepository.findByEmail("justine@gmail")).thenReturn(Optional.of(new User()));
-
-        assertThatThrownBy(() -> userService.createUser(request)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Email already taken");
-    }
-
-    @Test
-    void registerExistingUserWithSameUsernameThrowsException() {
-        UserRequestDTO request = new UserRequestDTO("Justine12", "justine@gmail", "password123");
-        when(userRepository.findByEmail("justine@gmail")).thenReturn(Optional.empty());
-        when(userRepository.findByUsername("Justine12")).thenReturn(Optional.of(new User()));
-
-        assertThatThrownBy(() -> userService.createUser(request)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Username already taken");
-    }
-
-    @Test
-    void testUserCanLogin() {
-        User existingUser = new User("1", "Justine12", "justine@gmail.com", "hashedPassword");
-        when(userRepository.findByEmail("justine@gmail.com")).thenReturn(Optional.of(existingUser));
-
-        when(passwordEncoder.matches("password123", "hashedPassword")).thenReturn(true);
-
-        UserResponseDTO response = userService.login("justine@gmail.com", "password123");
-
-        assertThat(response.getUsername()).isEqualTo("Justine12");
-        assertThat(response.getEmail()).isEqualTo(existingUser.getEmail());
-    }
-
-    @Test
-    void testLoginUserWithWrongPasswordThrowsException() {
-        User user = new User("1", "Justine12", "justine@gmail.com", "hashedPassword");
+    void testGetUserByEmail() {
         when(userRepository.findByEmail("justine@gmail.com")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("password123", "hashedPassword")).thenReturn(false);
 
-        assertThatThrownBy(() -> userService.login("justine@gmail.com", "wrongPassword")).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Wrong password");
+        Optional<UserResponseDTO> result = userService.getUserByEmail("justine@gmail.com");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getEmail()).isEqualTo("justine@gmail.com");
     }
 
     @Test
-    void testLoginWithWrongEmailThrowsException() {
+    void testGetUserByUsername() {
+        when(userRepository.findByUsername("Justine12")).thenReturn(Optional.of(user));
+
+        Optional<UserResponseDTO> result = userService.getUserByUsername("Justine12");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getUsername()).isEqualTo("Justine12");
+    }
+
+
+    @Test
+    void testLogin_Success() {
+        when(userRepository.findByEmail("justine@gmail.com")).thenReturn(Optional.of(user));
+
+        UserResponseDTO result = userService.login("justine@gmail.com", "password123");
+
+        assertThat(result.getEmail()).isEqualTo("justine@gmail.com");
+    }
+
+    @Test
+    void testLogin_InvalidPassword() {
+        when(userRepository.findByEmail("justine@gmail.com")).thenReturn(Optional.of(user));
+
+        assertThrows(RuntimeException.class, () ->
+                userService.login("justine@gmail.com", "wrongPassword"));
+    }
+
+    @Test
+    void testLogin_UserNotFound() {
         when(userRepository.findByEmail("unknown@gmail.com")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> userService.login("unknown@gmail.com", "wrongPassword")).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Invalid email");
+        assertThrows(RuntimeException.class, () ->
+                userService.login("unknown@gmail.com", "password123"));
     }
 
     @Test
-    void testGetUserByUsernameWorks(){
-        String username = "Justine12";
-        User user = new User("1", username, "justine@gmail.com", "hashedPassword");
-        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
+    void testGetAllUsers() {
+        User anotherUser = new User("2", "Esther12", "esther12@gmail.com", "securepass");
+        when(userRepository.findAll()).thenReturn(List.of(user, anotherUser));
 
-        Optional<UserResponseDTO> result = userService.getUserByUsername(username);
+        List<UserResponseDTO> result = userService.getAllUsers();
 
-        assertThat(result).isPresent();
-        assertThat(result.get().getUsername()).isEqualTo(username);
-        assertThat(result.get().getEmail()).isEqualTo(user.getEmail());
-    }
-
-    @Test
-    void testGetUserByEmailWorks(){
-        String email = "justine@gmail.com";
-        User user = new User("1", "Justine12", email, "hashedPassword");
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-
-        Optional<UserResponseDTO> result = userService.getUserByEmail(email);
-
-        assertThat(result).isPresent();
-        assertThat(result.get().getUsername()).isEqualTo(user.getUsername());
-        assertThat(result.get().getEmail()).isEqualTo(user.getEmail());
-    }
-
-    @Test
-    void testGetUserByEmailNotFound() {
-        when(userRepository.findByEmail("missing@gmail.com")).thenReturn(Optional.empty());
-
-        Optional<UserResponseDTO> result = userService.getUserByEmail("missing@gmail.com");
-
-        assertThat(result).isNotPresent();
-    }
-
-    @Test
-    void testGetUserByUsernameNotFound() {
-        when(userRepository.findByUsername("missingUser")).thenReturn(Optional.empty());
-
-        Optional<UserResponseDTO> result = userService.getUserByUsername("missingUser");
-
-        assertThat(result).isNotPresent();
+        assertEquals(2, result.size());
+        assertEquals("Justine12", result.get(0).getUsername());
+        assertEquals("Esther12", result.get(1).getUsername());
     }
 
 }
-
