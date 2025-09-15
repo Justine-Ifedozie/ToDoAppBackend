@@ -4,57 +4,99 @@ import com.toDoApp.domain.models.User;
 import com.toDoApp.domain.repositories.UserRepository;
 import com.toDoApp.dtos.requests.UserRequestDTO;
 import com.toDoApp.dtos.responses.UserResponseDTO;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
+    private UserResponseDTO mapToDTO(User user) {
+        return new UserResponseDTO(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail()
+        );
+    }
+
+    private User mapToEntity(UserRequestDTO dto) {
+        return new User(
+                null,
+                dto.getUsername(),
+                dto.getEmail(),
+                dto.getPassword()
+        );
     }
 
     @Override
     public UserResponseDTO createUser(UserRequestDTO requestDTO) {
-        if (userRepository.findByEmail(requestDTO.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email already taken");
-        }
+        User user = mapToEntity(requestDTO);
+        User saved = userRepository.save(user);
+        return mapToDTO(saved);
+    }
 
-        if (userRepository.findByUsername(requestDTO.getUsername()).isPresent()) {
-            throw new IllegalArgumentException("Username already taken");
-        }
+    @Override
+    public Optional<UserResponseDTO> getUserById(String id) {
+        return userRepository.findById(id).map(this::mapToDTO);
+    }
 
-        String hashedPassword = passwordEncoder.encode(requestDTO.getPassword());
-        User user = new User(null, requestDTO.getUsername(), requestDTO.getEmail(), hashedPassword);
-        User savedUser = userRepository.save(user);
+    @Override
+    public Optional<UserResponseDTO> getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .map(this::mapToDTO);
+    }
 
-        return new UserResponseDTO(savedUser.getId(), savedUser.getUsername(), savedUser.getEmail());
+    @Override
+    public Optional<UserResponseDTO> getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .map(this::mapToDTO);
     }
 
     @Override
     public UserResponseDTO login(String email, String password) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
-        if (!passwordEncoder.matches(password, user.getPassword())){
-            throw new IllegalArgumentException("Wrong password");
+        if (!user.getPassword().equals(password)) {
+            throw new RuntimeException("Invalid email or password");
         }
 
-        return new UserResponseDTO(user.getId(), user.getUsername(), user.getEmail());
+        return mapToDTO(user);
     }
 
     @Override
-    public Optional<UserResponseDTO> getUserByUsername(String username){
-        return userRepository.findByUsername(username).map(user -> new UserResponseDTO(user.getId(), user.getUsername(), user.getEmail()));
+    public void deleteUser(String userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new RuntimeException("User not found with id: " + userId);
+        }
+        userRepository.deleteById(userId);
     }
 
     @Override
-    public Optional<UserResponseDTO> getUserByEmail(String email){
-        return userRepository.findByEmail(email).map(user -> new UserResponseDTO(user.getId(), user.getUsername(), user.getEmail()));
+    public List<UserResponseDTO> getAllUsers() {
+        return userRepository.findAll()
+                .stream()
+                .map(this::mapToDTO)
+                .toList();
+    }
+
+
+    @Override
+    public UserResponseDTO updateUser(String userId, UserRequestDTO requestDTO) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        user.setUsername(requestDTO.getUsername());
+        user.setEmail(requestDTO.getEmail());
+        user.setPassword(requestDTO.getPassword());
+
+        User updated = userRepository.save(user);
+        return mapToDTO(updated);
     }
 }
+
