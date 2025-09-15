@@ -12,5 +12,7 @@ import java.time.LocalDateTime;
 
 public class ReminderRequestDTO {
     private String taskId;
+    private String userId;
+    private String message;
     private LocalDateTime reminderTime;
 }
