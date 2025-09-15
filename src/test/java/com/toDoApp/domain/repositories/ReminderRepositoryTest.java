@@ -1,5 +1,6 @@
 package com.toDoApp.domain.repositories;
 
+
 import com.toDoApp.domain.models.Reminder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,8 @@ class ReminderRepositoryTest {
     }
 
     private Reminder createSampleReminder(String taskId, boolean sent) {
-        return new Reminder(null, taskId, LocalDateTime.now().plusHours(1), sent);
+        return new Reminder(
+                null, taskId, "user1", "Do assignment", LocalDateTime.now().plusHours(1), sent);
     }
 
     @Test
@@ -46,5 +48,16 @@ class ReminderRepositoryTest {
 
         assertThat(reminders).isNotEmpty();
         assertThat(reminders.get(0).isSent()).isTrue();
+    }
+
+    @Test
+    void testThatRemindersCanBeFoundByUserId() {
+        Reminder reminder = createSampleReminder("task12", false);
+        reminderRepository.save(reminder);
+
+        List<Reminder> reminders = reminderRepository.findByUserId(reminder.getUserId());
+
+        assertThat(reminders).isNotEmpty();
+        assertThat(reminders.get(0).getTaskId()).isEqualTo(reminder.getTaskId());
     }
 }
