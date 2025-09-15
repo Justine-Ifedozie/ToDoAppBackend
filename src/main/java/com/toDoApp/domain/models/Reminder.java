@@ -18,6 +18,8 @@ public class Reminder {
     @Id
     private String id;
     private String taskId;
+    private String userId;
+    private String message;
     private LocalDateTime reminderTime;
     private boolean sent;
 }
