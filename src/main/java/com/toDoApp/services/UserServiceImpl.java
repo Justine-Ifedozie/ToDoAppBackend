@@ -45,25 +45,14 @@ public class UserServiceImpl implements UserService {
         return userRepository.findById(id).map(this::mapToDTO);
     }
 
-    @Override
-    public Optional<UserResponseDTO> getUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .map(this::mapToDTO);
-    }
 
     @Override
-    public Optional<UserResponseDTO> getUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .map(this::mapToDTO);
-    }
+    public UserResponseDTO login(UserRequestDTO requestDTO) {
+        User user = userRepository.findByEmail(requestDTO.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid email"));
 
-    @Override
-    public UserResponseDTO login(String email, String password) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
-
-        if (!user.getPassword().equals(password)) {
-            throw new RuntimeException("Invalid email or password");
+        if (!user.getPassword().equals(requestDTO.getPassword())) {
+            throw new RuntimeException("Invalid password");
         }
 
         return mapToDTO(user);
@@ -75,14 +64,6 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("User not found with id: " + userId);
         }
         userRepository.deleteById(userId);
-    }
-
-    @Override
-    public List<UserResponseDTO> getAllUsers() {
-        return userRepository.findAll()
-                .stream()
-                .map(this::mapToDTO)
-                .toList();
     }
 
 
