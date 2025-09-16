@@ -39,14 +39,14 @@ class CalendarServiceTest {
         LocalDateTime reminderTime = LocalDate.now().atTime(10, 0);
         calendarService.scheduleReminder(createSampleDTO("task1", "user1", reminderTime));
 
-        List<ReminderResponseDTO> reminders = calendarService.getRemindersForDate("user1", LocalDate.now());
+        List<ReminderResponseDTO> reminders = calendarService.getUserRemindersForACertainDate("user1", LocalDate.now());
 
         assertThat(reminders).hasSize(1);
         assertThat(reminders.get(0).getTaskId()).isEqualTo("task1");
     }
 
     @Test
-    void testGetRemindersForDateRange() {
+    void testGetUserRemindersForACertainDateRange() {
         LocalDate today = LocalDate.now();
         calendarService.scheduleReminder(createSampleDTO("task1", "user1", today.atTime(10, 0)));
         calendarService.scheduleReminder(createSampleDTO("task2", "user1", today.plusDays(2).atTime(12, 0)));
