@@ -12,15 +12,9 @@ public interface UserService {
 
     Optional<UserResponseDTO> getUserById(String userId);
 
-    Optional<UserResponseDTO> getUserByEmail(String email);
-
-    Optional<UserResponseDTO> getUserByUsername(String username);
-
-    List<UserResponseDTO> getAllUsers();
-
     UserResponseDTO updateUser(String userId, UserRequestDTO requestDTO);
 
     void deleteUser(String userId);
 
-    UserResponseDTO login(String email, String password);
+    UserResponseDTO login(UserRequestDTO requestDTO);
 }
