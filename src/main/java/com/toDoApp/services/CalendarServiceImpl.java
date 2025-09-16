@@ -20,7 +20,7 @@ public class CalendarServiceImpl implements CalendarService {
     private final ReminderRepository reminderRepository;
 
     @Override
-    public List<ReminderResponseDTO> getRemindersForDate(String userId, LocalDate date) {
+    public List<ReminderResponseDTO> getUserRemindersForACertainDate(String userId, LocalDate date) {
         LocalDateTime start = date.atStartOfDay();
         LocalDateTime end = date.plusDays(1).atStartOfDay();
 
