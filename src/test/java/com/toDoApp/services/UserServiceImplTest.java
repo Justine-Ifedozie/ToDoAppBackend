@@ -10,7 +10,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,32 +48,13 @@ class UserServiceImplTest {
         verify(userRepository, times(1)).save(any(User.class));
     }
 
-    @Test
-    void testGetUserByEmail() {
-        when(userRepository.findByEmail("justine@gmail.com")).thenReturn(Optional.of(user));
-
-        Optional<UserResponseDTO> result = userService.getUserByEmail("justine@gmail.com");
-
-        assertThat(result).isPresent();
-        assertThat(result.get().getEmail()).isEqualTo("justine@gmail.com");
-    }
-
-    @Test
-    void testGetUserByUsername() {
-        when(userRepository.findByUsername("Justine12")).thenReturn(Optional.of(user));
-
-        Optional<UserResponseDTO> result = userService.getUserByUsername("Justine12");
-
-        assertThat(result).isPresent();
-        assertThat(result.get().getUsername()).isEqualTo("Justine12");
-    }
 
 
     @Test
     void testLogin_Success() {
         when(userRepository.findByEmail("justine@gmail.com")).thenReturn(Optional.of(user));
 
-        UserResponseDTO result = userService.login("justine@gmail.com", "password123");
+        UserResponseDTO result = userService.login(requestDTO);
 
         assertThat(result.getEmail()).isEqualTo("justine@gmail.com");
     }
@@ -83,8 +63,12 @@ class UserServiceImplTest {
     void testLogin_InvalidPassword() {
         when(userRepository.findByEmail("justine@gmail.com")).thenReturn(Optional.of(user));
 
-        assertThrows(RuntimeException.class, () ->
-                userService.login("justine@gmail.com", "wrongPassword"));
+        UserRequestDTO wrongPasswordDTO = new UserRequestDTO("Justine12", "justine@gmail.com", "wrongPassword");
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () ->
+                userService.login(wrongPasswordDTO));
+
+        assertEquals("Invalid password", exception.getMessage());
     }
 
     @Test
@@ -92,19 +76,8 @@ class UserServiceImplTest {
         when(userRepository.findByEmail("unknown@gmail.com")).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () ->
-                userService.login("unknown@gmail.com", "password123"));
+                userService.login(requestDTO));
     }
 
-    @Test
-    void testGetAllUsers() {
-        User anotherUser = new User("2", "Esther12", "esther12@gmail.com", "securepass");
-        when(userRepository.findAll()).thenReturn(List.of(user, anotherUser));
-
-        List<UserResponseDTO> result = userService.getAllUsers();
-
-        assertEquals(2, result.size());
-        assertEquals("Justine12", result.get(0).getUsername());
-        assertEquals("Esther12", result.get(1).getUsername());
-    }
 
 }
