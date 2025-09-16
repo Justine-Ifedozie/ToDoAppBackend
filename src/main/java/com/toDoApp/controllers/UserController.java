@@ -7,10 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/users") // Base path for all user endpoints
 @RequiredArgsConstructor
 public class UserController {
 
@@ -21,45 +19,20 @@ public class UserController {
         return ResponseEntity.ok(userService.createUser(requestDTO));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable String id) {
-        return userService.getUserById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/email/{email}")
-    public ResponseEntity<UserResponseDTO> getUserByEmail(@PathVariable String email) {
-        return userService.getUserByEmail(email)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/username/{username}")
-    public ResponseEntity<UserResponseDTO> getUserByUsername(@PathVariable String username) {
-        return userService.getUserByUsername(username)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping
-    public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
-    }
-
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable String id, @RequestBody UserRequestDTO requestDTO) {
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable("id") String id,
+                                                      @RequestBody UserRequestDTO requestDTO) {
         return ResponseEntity.ok(userService.updateUser(id, requestDTO));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable("id") String id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserResponseDTO> login(@RequestParam String email, @RequestParam String password) {
-        return ResponseEntity.ok(userService.login(email, password));
+    public ResponseEntity<UserResponseDTO> login(@RequestBody UserRequestDTO requestDTO) {
+        return ResponseEntity.ok(userService.login(requestDTO));
     }
 }
